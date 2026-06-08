@@ -1,0 +1,254 @@
+﻿-- ============================================
+-- 查询名称: 医嘱明细接口查询（长期+临时）
+-- 原始存储过程: qzj_interface_v13_usp_tb_cis_dradvice_detail
+-- 转换日期: 2026-05-07
+-- 参数: @ksrq varchar(20) - 开始日期
+--       @jsrq varchar(20) - 结束日期
+-- 依赖链接服务器: 无
+-- ============================================
+
+-- ===== 主查询 =====
+WITH cte_VW_CQYZK AS (
+    SELECT *
+    FROM VW_CQYZK yz WITH (NOLOCK)
+    WHERE yz.lrrq BETWEEN ${KSSJ} AND ${JSSJ}
+),
+cte_VW_LSYZK AS (
+    SELECT *
+    FROM VW_LSYZK yz WITH (NOLOCK)
+    WHERE yz.lrrq BETWEEN ${KSSJ} AND ${JSSJ}
+)
+SELECT DISTINCT
+    'JKGKHSKP' AS yljgyqdm,
+    'cq' + CONVERT(VARCHAR, yz.xh) AS yzid,
+    CONVERT(VARCHAR(8), sy.ryrq, 112) + CONVERT(VARCHAR, sy.syxh) + SUBSTRING('42503274500', 10, 2) AS jzlsh,
+    dbo.fun_shwjw_kh_v30(sy.cardtype, sy.cardno) AS kh,
+    dbo.fun_shwjw_klx_v30(sy.cardtype, sy.cardno, sy.zhbz) AS klx,
+    RTRIM(LTRIM(yz.ksdm)) AS zyks,
+    RTRIM(LTRIM(yz.ksdm)) AS xdksbm,
+    RTRIM(LTRIM(yz.ysdm)) AS yzxdyhryid,
+    zg.[name] AS yzxdyhryxm,
+    yz.lrrq AS yzxdsj,
+    COALESCE(NULLIF(RTRIM(LTRIM(yz.zxksdm)), ''), '-') AS zxksbm,
+    COALESCE(NULLIF(RTRIM(LTRIM(yz.shczyh)), ''), '-') AS yzzxyhryid,
+    COALESCE(zxr.[name], '-') AS yzzxyhryxm,
+    COALESCE(yz.shrq, '1900-01-01') AS yzzxsj,
+    COALESCE(yz.tzrq, '1900-01-01') AS yzzzsj,
+    COALESCE(NULLIF(RTRIM(LTRIM(yz.shczyh)), ''), '-') AS yzshyhryid,
+    COALESCE(RTRIM(LTRIM(zxr.[name])), '-') AS yzshyhryxm,
+    COALESCE(yz.shrq, '1900-01-01') AS shsj,
+    yz.yznr AS yzsm,
+    CONVERT(VARCHAR, yz.fzxh) AS yzzh,
+    CASE WHEN yz.yzlb = 12 THEN 3 ELSE 1 END AS yzlb,
+    yz.ypdm AS mxxmbm,
+    COALESCE(
+        CASE WHEN yz.idm > 0
+            THEN COALESCE(NULLIF(cd.dydm, ''), '-')
+            ELSE COALESCE(NULLIF(xxm.dydm, ''), '-')
+        END,
+        '-'
+    ) AS mxxmbmyb,
+    yz.ypmc AS mxxmmc,
+    COALESCE(NULLIF(
+        CASE
+            WHEN yz.yzlb IN (0,8) THEN '01'
+            WHEN yz.yzlb = 6 THEN '02'
+            WHEN yz.yzlb = 7 THEN '03'
+            WHEN yz.yzlb = 2 THEN '04'
+            WHEN yz.yzlb = 1 THEN '05'
+            WHEN yz.yzlb IN (9,10,11,13) THEN '07'
+            WHEN yz.yzlb = 4 THEN '08'
+            ELSE '99'
+        END,
+    ''), '99') AS yzlx,
+    yz.ypsl AS xmmxsl,
+    yz.jldw AS xmmxdw,
+    0 AS xmmxje,
+    '-' AS bzggdw,
+    '-' AS bzggxs,
+    0 AS mcsl,
+    '-' AS mcdw,
+    COALESCE(NULLIF(SUBSTRING(yz.ypgg, 1, 64), ''), '-') AS ypgg,
+    COALESCE(NULLIF(
+        CASE
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '03' THEN '1'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '38' THEN '4'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '05' THEN '4'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '04' THEN '403'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '01' THEN '404'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '02' THEN '404'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '07' THEN '404'
+            WHEN yz.yzlb NOT IN (0,8) THEN '-'
+            ELSE '9'
+        END,
+    ''), '-') AS yf,
+    COALESCE(NULLIF(
+        CASE
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '03' THEN '口服'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '38' THEN '注射给药'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '05' THEN '注射给药'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '04' THEN '肌肉注射'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '01' THEN '静脉注射或静脉滴注'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '02' THEN '静脉注射或静脉滴注'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '07' THEN '静脉注射或静脉滴注'
+            WHEN yz.yzlb NOT IN (0,8) THEN '-'
+            ELSE '其他给药途径'
+        END,
+    ''), '-') AS ypyf,
+    CASE
+        WHEN yz.yzlb IN (0,8) THEN CASE WHEN pc.[name] = 'ONCE' THEN 'ST' ELSE pc.[name] END
+        ELSE '-'
+    END AS yypcdm,
+    CASE
+        WHEN yz.yzlb IN (0,8) THEN CASE WHEN pc.[name] = 'ONCE' THEN 'ST' ELSE pc.[name] END
+        ELSE '-'
+    END AS yypd,
+    0 AS jl,
+    '-' AS dw,
+    CONVERT(NUMERIC(20,3), DATEDIFF(DAY, yz.ksrq,
+        CASE WHEN COALESCE(yz.tzrq, '') = ''
+            THEN CONVERT(DATETIME, GETDATE(), 120)
+            ELSE yz.tzrq
+        END
+    )) AS yyts,
+    '0' AS sfps,
+    yz.ypsl AS ypsl,
+    yz.jldw AS ypdw,
+    '-' AS jydm,
+    '-' AS jcbw,
+    '-' AS bz,
+    1 AS xgbz,
+    NULL AS ylyl1,
+    NULL AS ylyl2,
+    NULL AS ylyl3,
+    NULL AS ylyl4,
+    NULL AS ylyl5,
+    NULL AS ylyl6
+FROM cte_VW_CQYZK yz
+JOIN ZY_BRSYK sy WITH (NOLOCK) ON yz.syxh = sy.syxh
+JOIN YY_ZGBMK zg WITH (NOLOCK) ON yz.ysdm = zg.id
+LEFT JOIN YY_ZGBMK zxr WITH (NOLOCK) ON yz.shczyh = zxr.id
+LEFT JOIN ZY_YZPCK pc WITH (NOLOCK) ON yz.pcdm = pc.id
+LEFT JOIN YK_YPCDMLK cd WITH (NOLOCK) ON yz.idm = cd.idm
+LEFT JOIN YY_SFXXMK xxm WITH (NOLOCK) ON yz.ypdm = xxm.id
+WHERE yz.yzzt <> 3
+    AND yz.ysdm <> '00'
+    AND sy.brzt <> '9'
+
+UNION ALL
+
+SELECT DISTINCT
+    'JKGKHSKP' AS yljgyqdm,
+    'ls' + CONVERT(VARCHAR, yz.xh) AS yzid,
+    CONVERT(VARCHAR(8), sy.ryrq, 112) + CONVERT(VARCHAR, sy.syxh) + SUBSTRING('42503274500', 10, 2) AS jzlsh,
+    dbo.fun_shwjw_kh_v30(sy.cardtype, sy.cardno) AS kh,
+    dbo.fun_shwjw_klx_v30(sy.cardtype, sy.cardno, sy.zhbz) AS klx,
+    RTRIM(LTRIM(yz.ksdm)) AS zyks,
+    RTRIM(LTRIM(yz.ksdm)) AS xdksbm,
+    RTRIM(LTRIM(yz.ysdm)) AS yzxdyhryid,
+    zg.[name] AS yzxdyhryxm,
+    yz.lrrq AS yzxdsj,
+    COALESCE(NULLIF(RTRIM(LTRIM(yz.zxksdm)), ''), '-') AS zxksbm,
+    COALESCE(NULLIF(RTRIM(LTRIM(yz.shczyh)), ''), '-') AS yzzxyhryid,
+    COALESCE(zxr.[name], '-') AS yzzxyhryxm,
+    COALESCE(yz.shrq, '1900-01-01') AS yzzxsj,
+    COALESCE(yz.tzrq, '1900-01-01') AS yzzzsj,
+    COALESCE(NULLIF(RTRIM(LTRIM(yz.shczyh)), ''), '-') AS yzshyhryid,
+    COALESCE(RTRIM(LTRIM(zxr.[name])), '-') AS yzshyhryxm,
+    COALESCE(yz.shrq, '1900-01-01') AS shsj,
+    yz.yznr AS yzsm,
+    CONVERT(VARCHAR, yz.fzxh) AS yzzh,
+    CASE WHEN yz.yzlb = 12 THEN 3 ELSE 2 END AS yzlb,
+    yz.ypdm AS mxxmbm,
+    COALESCE(
+        CASE WHEN yz.idm > 0
+            THEN COALESCE(NULLIF(cd.dydm, ''), '-')
+            ELSE COALESCE(NULLIF(xxm.dydm, ''), '-')
+        END,
+        '-'
+    ) AS mxxmbmyb,
+    yz.ypmc AS mxxmmc,
+    COALESCE(NULLIF(
+        CASE
+            WHEN yz.yzlb IN (0,8) THEN '01'
+            WHEN yz.yzlb = 6 THEN '02'
+            WHEN yz.yzlb = 7 THEN '03'
+            WHEN yz.yzlb = 2 THEN '04'
+            WHEN yz.yzlb = 1 THEN '05'
+            WHEN yz.yzlb IN (9,10,11,13) THEN '07'
+            WHEN yz.yzlb = 4 THEN '08'
+            ELSE '99'
+        END,
+    ''), '99') AS yzlx,
+    yz.ypsl AS xmmxsl,
+    yz.jldw AS xmmxdw,
+    0 AS xmmxje,
+    '-' AS bzggdw,
+    '-' AS bzggxs,
+    0 AS mcsl,
+    '-' AS mcdw,
+    COALESCE(NULLIF(SUBSTRING(yz.ypgg, 1, 64), ''), '-') AS ypgg,
+    COALESCE(NULLIF(
+        CASE
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '03' THEN '1'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '38' THEN '4'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '05' THEN '4'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '04' THEN '403'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '01' THEN '404'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '02' THEN '404'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '07' THEN '404'
+            WHEN yz.yzlb NOT IN (0,8) THEN '-'
+            ELSE '9'
+        END,
+    ''), '-') AS yf,
+    COALESCE(NULLIF(
+        CASE
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '03' THEN '口服'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '38' THEN '注射给药'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '05' THEN '注射给药'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '04' THEN '肌肉注射'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '01' THEN '静脉注射或静脉滴注'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '02' THEN '静脉注射或静脉滴注'
+            WHEN yz.yzlb IN (0,8) AND yz.ypyf = '07' THEN '静脉注射或静脉滴注'
+            WHEN yz.yzlb NOT IN (0,8) THEN '-'
+            ELSE '其他给药途径'
+        END,
+    ''), '-') AS ypyf,
+    CASE
+        WHEN yz.yzlb IN (0,8) THEN CASE WHEN pc.[name] = 'ONCE' THEN 'ST' ELSE pc.[name] END
+        ELSE '-'
+    END AS yypcdm,
+    CASE
+        WHEN yz.yzlb IN (0,8) THEN CASE WHEN pc.[name] = 'ONCE' THEN 'ST' ELSE pc.[name] END
+        ELSE '-'
+    END AS yypd,
+    0 AS jl,
+    '-' AS dw,
+    CONVERT(NUMERIC(20,3), DATEDIFF(DAY, yz.ksrq,
+        CASE WHEN COALESCE(yz.tzrq, '') = ''
+            THEN CONVERT(DATETIME, GETDATE(), 120)
+            ELSE yz.tzrq
+        END
+    )) AS yyts,
+    '0' AS sfps,
+    yz.ypsl AS ypsl,
+    yz.jldw AS ypdw,
+    '-' AS jydm,
+    '-' AS jcbw,
+    '-' AS bz,
+    1 AS xgbz,
+    NULL AS ylyl1,
+    NULL AS ylyl2,
+    NULL AS ylyl3,
+    NULL AS ylyl4,
+    NULL AS ylyl5,
+    NULL AS ylyl6
+FROM cte_VW_LSYZK yz
+JOIN ZY_BRSYK sy WITH (NOLOCK) ON yz.syxh = sy.syxh AND sy.brzt <> '9'
+JOIN YY_ZGBMK zg WITH (NOLOCK) ON yz.ysdm = zg.id
+LEFT JOIN YY_ZGBMK zxr WITH (NOLOCK) ON yz.shczyh = zxr.id
+LEFT JOIN ZY_YZPCK pc WITH (NOLOCK) ON yz.pcdm = pc.id
+LEFT JOIN YK_YPCDMLK cd WITH (NOLOCK) ON yz.idm = cd.idm
+LEFT JOIN YY_SFXXMK xxm WITH (NOLOCK) ON yz.ypdm = xxm.id
+WHERE yz.yzzt <> 3
+    AND NOT EXISTS (SELECT 1 FROM YY_YBFLK yb WITH (NOLOCK) WHERE yb.ybdm = sy.ybdm AND yb.bjqkdm = '1');
